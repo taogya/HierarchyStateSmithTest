@@ -1,0 +1,129 @@
+@startuml HierarchySm
+
+' //////////////////////// STATE ORGANIZATION ///////////////////////
+' Note: StateSmith treats state names and events as case insensitive.
+' More info: https://github.com/StateSmith/StateSmith/wiki/PlantUML
+
+state INIT
+state WAIT
+state PROC {
+    state PROC_OFF
+    state PROC_ON {
+        state "$HC" as hc_proc_on
+        state PROC_ON_WAIT
+        state PROC_ON_EXEC {
+            state "$HC" as hc_proc_on_exec
+            state PROC_ON_EXEC_SINGLE
+            state PROC_ON_EXEC_MULTI
+
+            [*] --> [H]
+            [H] --> PROC_ON_EXEC_SINGLE
+        }
+
+        [*] --> PROC_ON_WAIT
+    }
+
+    [*] --> [H]
+    [H] --> PROC_OFF
+}
+
+
+' ///////////////////////// STATE HANDLERS /////////////////////////
+' Syntax: https://github.com/StateSmith/StateSmith/wiki/Behaviors
+
+[*] -> INIT
+
+' INIT
+INIT: enter / HSM_INIT_enter();
+INIT: exit  / HSM_INIT_exit();
+INIT --> WAIT : GOTO_WAIT
+
+
+' WAIT
+WAIT: enter / HSM_WAIT_enter();
+WAIT: exit  / HSM_WAIT_exit();
+WAIT --> PROC : GOTO_PROC
+
+
+' PROC
+PROC: enter / HSM_PROC_enter();
+PROC: exit  / HSM_PROC_exit();
+PROC --> WAIT : GOTO_WAIT
+
+' PROC_OFF
+PROC_OFF: enter / HSM_PROC_OFF_enter();
+PROC_OFF: exit  / HSM_PROC_OFF_exit();
+PROC_OFF --> PROC_ON : PROC_ON
+
+' PROC_ON
+PROC_ON: enter / HSM_PROC_ON_enter();
+PROC_ON: exit  / HSM_PROC_ON_exit();
+PROC_ON --> PROC_OFF : PROC_OFF
+
+' PROC_ON_WAIT
+PROC_ON_WAIT: enter / HSM_PROC_ON_WAIT_enter();
+PROC_ON_WAIT: exit  / HSM_PROC_ON_WAIT_exit();
+PROC_ON_WAIT --> PROC_ON_EXEC : PROC_EXEC
+
+' PROC_ON_EXEC
+PROC_ON_EXEC: enter / HSM_PROC_ON_EXEC_enter();
+PROC_ON_EXEC: exit  / HSM_PROC_ON_EXEC_exit();
+PROC_ON_EXEC --> PROC_ON_WAIT : PROC_WAIT
+
+' PROC_ON_EXEC_SINGLE
+PROC_ON_EXEC_SINGLE: enter / HSM_PROC_ON_EXEC_SINGLE_enter();
+PROC_ON_EXEC_SINGLE: exit  / HSM_PROC_ON_EXEC_SINGLE_exit();
+PROC_ON_EXEC_SINGLE --> PROC_ON_EXEC_MULTI : PROC_MULTI
+
+' PROC_ON_EXEC_MULTI
+PROC_ON_EXEC_MULTI: enter / HSM_PROC_ON_EXEC_MULTI_enter();
+PROC_ON_EXEC_MULTI: exit  / HSM_PROC_ON_EXEC_MULTI_exit();
+PROC_ON_EXEC_MULTI --> PROC_ON_EXEC_SINGLE : PROC_SINGLE
+
+' //////////////////////// StateSmith config ////////////////////////
+' The below special comment block sets the StateSmith configuration.
+' More info: https://github.com/StateSmith/StateSmith/issues/335
+
+/'! $CONFIG : toml
+
+[RenderConfig]
+FileTop = """
+    // Whatever you put in this `FileTop` section will end up 
+    // being printed at the top of every generated code file.
+    """
+AutoExpandedVars = """
+    """
+
+[RenderConfig.C]
+# CFileExtension = ".inc" # if you want to include sm in another file
+HFileIncludes = """
+    """
+CFileIncludes = """
+
+    extern void HSM_INIT_enter(void);
+    extern void HSM_INIT_exit(void);
+    extern void HSM_WAIT_enter(void);
+    extern void HSM_WAIT_exit(void);
+    extern void HSM_PROC_enter(void);
+    extern void HSM_PROC_exit(void);
+    extern void HSM_PROC_OFF_enter(void);
+    extern void HSM_PROC_OFF_exit(void);
+    extern void HSM_PROC_ON_enter(void);
+    extern void HSM_PROC_ON_exit(void);
+    extern void HSM_PROC_ON_WAIT_enter(void);
+    extern void HSM_PROC_ON_WAIT_exit(void);
+    extern void HSM_PROC_ON_EXEC_enter(void);
+    extern void HSM_PROC_ON_EXEC_exit(void);
+    extern void HSM_PROC_ON_EXEC_SINGLE_enter(void);
+    extern void HSM_PROC_ON_EXEC_SINGLE_exit(void);
+    extern void HSM_PROC_ON_EXEC_MULTI_enter(void);
+    extern void HSM_PROC_ON_EXEC_MULTI_exit(void);
+    """
+# IncludeGuardLabel = "{FILENAME}_H"
+
+# More C settings are available. See docs.
+
+[SmRunnerSettings]
+transpilerId = "C99"
+'/
+@enduml
